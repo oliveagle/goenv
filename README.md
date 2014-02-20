@@ -8,6 +8,11 @@ The main difference is that instead of an 'activate' script that sets up your en
 this opens up a new subshell for you to work in. It will also download
 and install the version of Go that you want it to.
 
+**NOTE**: I do not have a Mac to test this on. I know it works on Linux, and
+I _think_ it will work on OSX, but I'm not sure. If you want to test it,
+and maybe send me a pull request to fix any issues you find, I would
+appreciated it.
+
 ## Usage
 
     $ cd /path/to/project
