@@ -5,19 +5,20 @@ so I wrote a small utility to set up my environment for me. It is similar in spi
 `virtualenv`, though it does less, and does it a little differently.
 
 The main difference is that instead of an 'activate' script that sets up your environment,
-this opens up a new subshell for you to work in.
+this opens up a new subshell for you to work in. It will also download
+and install the version of Go that you want it to.
 
 ## Usage
 
     $ cd /path/to/project
     $ echo $GOPATH
 
-    $ # simplest usage
+    # simplest usage
     $ goenv
     (golang-1.2) $ echo $GOPATH
-    /path/to/project/projectdir:/path/to/project/pkg/somepkg
-    $ 
-    $ # specify Golang version
+    /path/to/project:/path/to/project/pkg/somepkg
+
+    # specify Golang version
     $ goenv --version 1.1
     (golang-1.1) $
 
