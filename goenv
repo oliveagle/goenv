@@ -1,0 +1,197 @@
+#!/usr/bin/python
+
+from __future__ import print_function
+
+USAGE = u"""
+This is intended to be a cross-platform way to quickly set up
+a go environment, including downloading and extracting the necessary
+Golang distribution. Currently, the only platform that is 
+definitely supported is Linux, and Mac OSX is possibly supported.
+"""
+
+import httplib
+import os
+import subprocess
+import sys
+import tarfile
+
+DOWNLOAD_HOSTNAME = "go.googlecode.com"
+DOWNLOAD_PATH = "/files/{filename}"
+DOWNLOAD_FILENAME = "go{version}.{platform}-{architecture}.{extension}"
+
+XDG_CACHE_HOME = os.environ.get('XDG_CACHE_HOME', False) or \
+                 os.path.join(os.environ['HOME'], ".cache")
+XDG_CONFIG_HOME = os.environ.get('XDG_CONFIG_HOME') or \
+                  os.path.join(os.environ['HOME'], ".config")
+GOENV_CACHE_HOME = os.path.join(XDG_CACHE_HOME, "goenv")
+GOENV_CONFIG_HOME = os.path.join(XDG_CONFIG_HOME, "goenv",)
+GOLANG_DISTRIBUTIONS_DIR = os.path.join(GOENV_CONFIG_HOME, "dists")
+
+class Plat(object):
+    def __init__(self, version=None, *gopath):
+        if version is None:
+            version = self.latest_version()
+        self.version = version
+        self.gopath = gopath
+
+
+    def download(self):
+        version = self.version
+        platform = self.platform
+        architecture = self.architecture
+        extension = self.extension
+
+        filename = DOWNLOAD_FILENAME.format(version=version,
+                                            platform=platform,
+                                            architecture=architecture,
+                                            extension=extension)
+        path = DOWNLOAD_PATH.format(filename=filename)
+        fullpath = os.path.join(GOENV_CACHE_HOME, filename)
+        if not os.path.exists(fullpath):
+            print("Downloading http://{0}{1}".format(DOWNLOAD_HOSTNAME, path), file=sys.stderr)
+            try:
+                connection = httplib.HTTPConnection(DOWNLOAD_HOSTNAME)
+                connection.request("GET", path)
+                response = connection.getresponse()
+            except httplib.HTTPException as ex:
+                print(ex.message, file=sys.stderr)
+                sys.exit(1)
+
+            with open(fullpath, 'wb+') as f:
+                f.write(response.read())
+        else:
+            print("Using existing tarball", file=sys.stderr)
+        return fullpath
+
+
+class Unix(Plat):
+    def _is_64bit(self):
+        return sys.maxsize > 2**32
+
+    def go(self):
+        godir = self.extract(self.download())
+        self.subshell(godir, *self.gopath)
+
+    def subshell(self, godir, *gopath):
+        version = self.version
+        if gopath:
+            gopath = ":".join(gopath)
+
+        goroot = os.path.join(godir, "go")
+        gobin = os.path.join(goroot, "bin")
+        shell = os.environ.get("SHELL", "/bin/bash")
+        oldps1 = os.environ.get("PS1", False) or "\u@\h \W$ "
+        ps1 = "(golang-{0}) {1}".format(version, oldps1)
+        newpath = ":".join([gobin, os.environ.get("PATH", "")])
+
+        additionalenv = {
+                "PATH": newpath,
+                "GOROOT": goroot,
+                "GOPATH": gopath,
+                "PS1": ps1,
+        }
+        newenv = os.environ.copy()
+        newenv.update(**additionalenv)
+        print(newenv)
+        os.execlpe('/bin/bash', '-i', '--noprofile', '--norc', newenv)
+
+    def extract(self, filename):
+        version = self.version
+        godir = os.path.join(GOLANG_DISTRIBUTIONS_DIR, version)
+        if not os.path.exists(godir):
+            print("Extracting {0} to {1}".format(filename, godir), file=sys.stderr)
+            with tarfile.open(filename) as tarball:
+                tarball.extractall(godir)
+        else:
+            print("Go version {0} already exists, skipping extract".format(version), file=sys.stderr)
+        return godir
+
+    def download(self):
+        return super(Unix, self).download()
+
+
+
+class Linux(Unix):
+    def __init__(self, *args):
+        self.platform = "linux"
+        self.architecture = "amd64" if self._is_64bit() else "i386"
+        self.extension = "tar.gz"
+
+        super(Linux, self).__init__(*args)
+
+
+class MacOSX(Unix):
+    def __init__(self, *args):
+        self.platform = "darwin"
+        arch = "amd64" if self._is_64bit() else "i386"
+        v, _, _ = platform.mac_ver()
+        _, minor, _ = v.split('.')
+
+        if minor < 8:
+            osx_version = "10.6"
+        elif minor >= 8:
+            osx_version = "10.8"
+
+        self.architecture = "{0}-osx{1}".format(arch, osx_version)
+        self.extension = "tar.gz"
+
+
+# Helper functions
+def default_version():
+    """ TODO: need to automate getting this"""
+    return "1.2"
+
+def all_for_gopath(base):
+    return [substitute(loc) for (loc, dirs, files) in os.walk(base) if 'src' in dirs]
+
+def find_for_gopath(base, exclude=None):
+    if exclude is None:
+        exclude = []
+    alldirs = all_for_gopath(base)
+    return [ d for d in alldirs if d not in exclude]
+
+def ensure_paths(*paths):
+    for path in paths:
+        if not os.path.exists(path):
+            print("creating {0}".format(path), file=sys.stderr)
+            os.makedirs(path)
+
+def substitute(path):
+    if path == '.':
+        return os.environ['PWD']
+    elif path == '..':
+        return os.path.dirname(os.environ['PWD'])
+    return os.path.realpath(path)
+
+def main(argv):
+    import argparse
+    parser = argparse.ArgumentParser(description=USAGE)
+    parser.add_argument("--basedir", default='.', help="the directory to start looking for locations to add to the GOPATH")
+    parser.add_argument("--version", dest='version', action='store',
+            default=default_version(), help="specify a version of Go _other_ than the latest")
+    parser.add_argument("--exclude", default=tuple(), dest='exclude',
+            action='store', nargs='*', help="exclude a directory from the $GOPATH")
+
+    args = parser.parse_args()
+
+    if args.exclude is not None:
+        exclude = [os.path.realpath(e) for e in args.exclude]
+
+    gopath = find_for_gopath(substitute(args.basedir), exclude)
+
+    # we should have _something_ in the GOPATH...
+    if not gopath:
+        print("'{0}' doesn't appear to be a go project?".format(os.getcwd()), file=sys.stderr)
+        sys.exit(1)
+
+    ensure_paths(GOENV_CACHE_HOME, GOENV_CONFIG_HOME, GOLANG_DISTRIBUTIONS_DIR)
+
+    if sys.platform.startswith("linux"):
+        impl = Linux
+    elif sys.platform.startswith("darwin"):
+        impl = MacOSX
+
+    impl(args.version, *gopath).go()
+
+if __name__ == u'__main__':
+    main(sys.argv)
