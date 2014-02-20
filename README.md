@@ -13,6 +13,17 @@ I _think_ it will work on OSX, but I'm not sure. If you want to test it,
 and maybe send me a pull request to fix any issues you find, I would
 appreciate it.
 
+## Installation
+
+It is a single Python script, so you can just make it executable and put
+it somewhere in your path.
+
+    # you might need to add --no-check-certificate to the wget command...
+    $ wget -O ~/bin/goenv https://raw.github.com/pwoolcoc/goenv/master/goenv
+    # for the love of pete, don't just run scripts you get from the internet, check them first!
+    $ $EDITOR ~/bin/goenv
+    $ chmod +x ~/bin/goenv
+
 ## Usage
 
     $ cd /path/to/project
