@@ -51,5 +51,7 @@ it somewhere in your path.
 ## Contact
 
 email: pwoolcoc@gmail.com
+
 twitter: @pauldwoolcock
+
 irc: pauldwoolcock@dukgo.com
