@@ -41,7 +41,6 @@ class Plat(object):
 
     def download(self):
         version = self.version
-        platform = self.platform
         architecture = self.architecture
         extension = self.extension
 
@@ -83,7 +82,6 @@ class Unix(Plat):
 
         goroot = os.path.join(godir, "go")
         gobin = os.path.join(goroot, "bin")
-        shell = os.environ.get("SHELL", "/bin/bash")
         oldps1 = os.environ.get("PS1", False) or "\u@\h \W$ "
         ps1 = "(golang-{0}) {1}".format(version, oldps1)
         newpath = ":".join([gobin, os.environ.get("PATH", "")])
