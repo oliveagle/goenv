@@ -95,7 +95,6 @@ class Unix(Plat):
         }
         newenv = os.environ.copy()
         newenv.update(**additionalenv)
-        print(newenv)
         os.execlpe('/bin/bash', '-i', '--noprofile', '--norc', newenv)
 
     def extract(self, filename):
