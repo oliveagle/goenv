@@ -54,4 +54,4 @@ email: pwoolcoc@gmail.com
 
 twitter: @pauldwoolcock
 
-irc: pauldwoolcock@dukgo.com
+jabber: pauldwoolcock@dukgo.com
