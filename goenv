@@ -1,23 +1,27 @@
 #!/usr/bin/python
-
 from __future__ import print_function
+
 
 USAGE = u"""
 This is intended to be a cross-platform way to quickly set up
 a go environment, including downloading and extracting the necessary
-Golang distribution. Currently, the only platform that is 
+Golang distribution. Currently, the only platform that is
 definitely supported is Linux, and Mac OSX is possibly supported.
 """
 
+
+import argparse
 import httplib
 import os
-import subprocess
+import platform
 import sys
 import tarfile
+
 
 DOWNLOAD_HOSTNAME = "go.googlecode.com"
 DOWNLOAD_PATH = "/files/{filename}"
 DOWNLOAD_FILENAME = "go{version}.{platform}-{architecture}.{extension}"
+
 
 XDG_CACHE_HOME = os.environ.get('XDG_CACHE_HOME', False) or \
                  os.path.join(os.environ['HOME'], ".cache")
@@ -27,6 +31,7 @@ GOENV_CACHE_HOME = os.path.join(XDG_CACHE_HOME, "goenv")
 GOENV_CONFIG_HOME = os.path.join(XDG_CONFIG_HOME, "goenv",)
 GOLANG_DISTRIBUTIONS_DIR = os.path.join(GOENV_CONFIG_HOME, "dists")
 
+
 class Plat(object):
     def __init__(self, version=None, *gopath):
         if version is None:
@@ -34,10 +39,8 @@ class Plat(object):
         self.version = version
         self.gopath = gopath
 
-
     def download(self):
         version = self.version
-        platform = self.platform
         architecture = self.architecture
         extension = self.extension
 
@@ -79,7 +82,6 @@ class Unix(Plat):
 
         goroot = os.path.join(godir, "go")
         gobin = os.path.join(goroot, "bin")
-        shell = os.environ.get("SHELL", "/bin/bash")
         oldps1 = os.environ.get("PS1", False) or "\u@\h \W$ "
         ps1 = "(golang-{0}) {1}".format(version, oldps1)
         newpath = ":".join([gobin, os.environ.get("PATH", "")])
@@ -110,7 +112,6 @@ class Unix(Plat):
         return super(Unix, self).download()
 
 
-
 class Linux(Unix):
     def __init__(self, *args):
         self.platform = "linux"
@@ -135,14 +136,18 @@ class MacOSX(Unix):
         self.architecture = "{0}-osx{1}".format(arch, osx_version)
         self.extension = "tar.gz"
 
+        super(MacOSX, self).__init__(*args)
+
 
 # Helper functions
 def default_version():
-    """ TODO: need to automate getting this"""
+    # TODO: need to automate getting this
     return "1.2"
+
 
 def all_for_gopath(base):
     return [substitute(loc) for (loc, dirs, files) in os.walk(base) if 'src' in dirs]
+
 
 def find_for_gopath(base, exclude=None):
     if exclude is None:
@@ -150,11 +155,13 @@ def find_for_gopath(base, exclude=None):
     alldirs = all_for_gopath(base)
     return [ d for d in alldirs if d not in exclude]
 
+
 def ensure_paths(*paths):
     for path in paths:
         if not os.path.exists(path):
             print("creating {0}".format(path), file=sys.stderr)
             os.makedirs(path)
+
 
 def substitute(path):
     if path == '.':
@@ -163,8 +170,8 @@ def substitute(path):
         return os.path.dirname(os.environ['PWD'])
     return os.path.realpath(path)
 
+
 def main(argv):
-    import argparse
     parser = argparse.ArgumentParser(description=USAGE)
     parser.add_argument("--basedir", default='.', help="the directory to start looking for locations to add to the GOPATH")
     parser.add_argument("--version", dest='version', action='store',
@@ -192,6 +199,7 @@ def main(argv):
         impl = MacOSX
 
     impl(args.version, *gopath).go()
+
 
 if __name__ == u'__main__':
     main(sys.argv)
