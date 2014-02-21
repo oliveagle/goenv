@@ -43,7 +43,8 @@ class Plat(object):
         version = self.version
         architecture = self.architecture
         extension = self.extension
-
+        platform = self.platform
+        
         filename = DOWNLOAD_FILENAME.format(version=version,
                                             platform=platform,
                                             architecture=architecture,
