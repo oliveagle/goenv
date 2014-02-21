@@ -27,13 +27,29 @@ it somewhere in your path.
 
     # simplest usage
     $ goenv
+    Downloading http://go.googlecode.com/files/go1.2.linux-amd64.tar.gz
+    Extracting /home/user/.cache/goenv/go1.2.linux-amd64.tar.gz to /home/user/.config/goenv/dists/1.2
     (golang-1.2) $ echo $GOPATH
     /path/to/project:/path/to/project/pkg/somepkg
+    ^D
+    $
+    
+    # You don't have to download a new go tarball every time...
+    $ goenv
+    Using existing tarball
+    Go version 1.2 already exists, skipping extract
+    (golang-1.2) $
+    ^D
+    $
 
     # specify Golang version
     $ goenv --version 1.1
+    Downloading http://go.googlecode.com/files/go1.1.linux-amd64.tar.gz
+    Extracting /home/user/.cache/goenv/go1.1.linux-amd64.tar.gz to /home/user/.config/goenv/dists/1.1
     (golang-1.1) $
 
 ## Contact
 
-pwoolcoc@gmail.com
+email: pwoolcoc@gmail.com
+twitter: @pauldwoolcock
+irc: pauldwoolcock@dukgo.com
