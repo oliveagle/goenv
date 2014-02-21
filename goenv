@@ -12,6 +12,7 @@ definitely supported is Linux, and Mac OSX is possibly supported.
 import httplib
 import os
 import subprocess
+import platform
 import sys
 import tarfile
 
@@ -134,6 +135,8 @@ class MacOSX(Unix):
 
         self.architecture = "{0}-osx{1}".format(arch, osx_version)
         self.extension = "tar.gz"
+
+        super(MacOSX, self).__init__(*args)
 
 
 # Helper functions
