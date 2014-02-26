@@ -5,8 +5,8 @@ from __future__ import print_function
 USAGE = u"""
 This is intended to be a cross-platform way to quickly set up
 a go environment, including downloading and extracting the necessary
-Golang distribution. Currently, the only platform that is
-definitely supported is Linux, and Mac OSX is possibly supported.
+Golang distribution. Currently, the supported platforms are Linux
+and Mac OSX
 """
 
 
@@ -33,11 +33,12 @@ GOLANG_DISTRIBUTIONS_DIR = os.path.join(GOENV_CONFIG_HOME, "dists")
 
 
 class Plat(object):
-    def __init__(self, version=None, *gopath):
+    def __init__(self, version=None, *gopath, **opts):
         if version is None:
             version = self.latest_version()
         self.version = version
         self.gopath = gopath
+        self.opts = opts
 
     def download(self):
         version = self.version
@@ -72,9 +73,37 @@ class Unix(Plat):
     def _is_64bit(self):
         return sys.maxsize > 2**32
 
+    def do_subshell(self):
+        return u"install_only" not in self.opts or \
+                not self.opts.get(u"install_only")
+
     def go(self):
         godir = self.extract(self.download())
-        self.subshell(godir, *self.gopath)
+        if self.do_subshell():
+            self.subshell(godir, *self.gopath)
+        else:
+            message = """Go installed, run the following commands (for your shell) to start using Go.
+
+bash/zsh:
+
+    export GOROOT={0}
+    export PATH="{0}/bin:${{PATH}}"
+
+csh/tcsh:
+
+    setenv GOROOT {0}
+    setenv PATH {0}/bin:$PATH
+
+fish:
+
+    set -xg GOROOT {0}
+    set -xg PATH {0}/bin $PATH
+
+"""
+            print(message.format(self.goroot(godir)))
+
+    def goroot(self, godir):
+        return os.path.join(godir, "go")
 
     def subshell(self, godir, *gopath):
         version = self.version
@@ -83,7 +112,7 @@ class Unix(Plat):
 
         goroot = os.path.join(godir, "go")
         gobin = os.path.join(goroot, "bin")
-        oldps1 = os.environ.get("PS1", False) or "\u@\h \W$ "
+        oldps1 = os.environ.get("PS1", "\u@\h \W$ ")
         ps1 = "(golang-{0}) {1}".format(version, oldps1)
         newpath = ":".join([gobin, os.environ.get("PATH", "")])
 
@@ -95,6 +124,8 @@ class Unix(Plat):
         }
         newenv = os.environ.copy()
         newenv.update(**additionalenv)
+        # TODO instead of defaulting to Bash, detect user's shell and use that
+        # instead
         os.execlpe('/bin/bash', '-i', '--noprofile', '--norc', newenv)
 
     def extract(self, filename):
@@ -113,16 +144,16 @@ class Unix(Plat):
 
 
 class Linux(Unix):
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
         self.platform = "linux"
         self.architecture = "amd64" if self._is_64bit() else "386"
         self.extension = "tar.gz"
 
-        super(Linux, self).__init__(*args)
+        super(Linux, self).__init__(*args, **kwargs)
 
 
 class MacOSX(Unix):
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
         self.platform = "darwin"
         arch = "amd64" if self._is_64bit() else "386"
         v, _, _ = platform.mac_ver()
@@ -178,6 +209,8 @@ def main(argv):
             default=default_version(), help="specify a version of Go _other_ than the latest")
     parser.add_argument("--exclude", default=tuple(), dest='exclude',
             action='store', nargs='*', help="exclude a directory from the $GOPATH")
+    parser.add_argument("--install-only", default=False, dest="install_only", action='store_true',
+            help="only download and install the specified version of Go, don't drop into a shell")
 
     args = parser.parse_args()
 
@@ -198,7 +231,7 @@ def main(argv):
     elif sys.platform.startswith("darwin"):
         impl = MacOSX
 
-    impl(args.version, *gopath).go()
+    impl(args.version, *gopath, install_only=args.install_only).go()
 
 
 if __name__ == u'__main__':
