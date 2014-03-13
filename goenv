@@ -115,7 +115,7 @@ class Unix(Plat):
 class Linux(Unix):
     def __init__(self, *args):
         self.platform = "linux"
-        self.architecture = "amd64" if self._is_64bit() else "i386"
+        self.architecture = "amd64" if self._is_64bit() else "386"
         self.extension = "tar.gz"
 
         super(Linux, self).__init__(*args)
@@ -124,7 +124,7 @@ class Linux(Unix):
 class MacOSX(Unix):
     def __init__(self, *args):
         self.platform = "darwin"
-        arch = "amd64" if self._is_64bit() else "i386"
+        arch = "amd64" if self._is_64bit() else "386"
         v, _, _ = platform.mac_ver()
         _, minor, _ = v.split('.')
 
