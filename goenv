@@ -18,8 +18,8 @@ import sys
 import tarfile
 
 
-DOWNLOAD_HOSTNAME = "go.googlecode.com"
-DOWNLOAD_PATH = "/files/{filename}"
+DOWNLOAD_HOSTNAME = "storage.googleapis.com"
+DOWNLOAD_PATH = "/golang/{filename}"
 DOWNLOAD_FILENAME = "go{version}.{platform}-{architecture}.{extension}"
 
 
@@ -142,7 +142,7 @@ class MacOSX(Unix):
 # Helper functions
 def default_version():
     # TODO: need to automate getting this
-    return "1.2.1"
+    return "1.2.2"
 
 
 def all_for_gopath(base):
