@@ -43,7 +43,7 @@ it somewhere in your path.
     $
 
     # specify Golang version
-    $ goenv --version 1.1
+    $ goenv --go-version 1.1
     Downloading http://go.googlecode.com/files/go1.1.linux-amd64.tar.gz
     Extracting /home/user/.cache/goenv/go1.1.linux-amd64.tar.gz to /home/user/.config/goenv/dists/1.1
     (golang-1.1) $
