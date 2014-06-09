@@ -237,8 +237,7 @@ def main(argv):
 
     # we should have _something_ in the GOPATH...
     if not gopath:
-        print("'{0}' doesn't appear to be a go project?".format(os.getcwd()), file=sys.stderr)
-        sys.exit(1)
+        gopath = [ os.getcwd() ]
 
     ensure_paths(GOENV_CACHE_HOME, GOENV_CONFIG_HOME, GOLANG_DISTRIBUTIONS_DIR)
 
