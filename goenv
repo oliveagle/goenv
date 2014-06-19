@@ -209,9 +209,15 @@ class ParseGoDL(HTMLParser):
 
 # Helper functions
 def default_version():
-    # TODO: need to automate getting this
-    return "1.2.2"
-
+    conn = httplib.HTTPConnection("golang.org"); conn.connect()
+    conn.request("GET", "/dl/")
+    resp = conn.getresponse()
+    if resp.status // 100 != 2:
+        return raw_input("Error detecting the default Go version.\nPlease enter the version you wish to install (i.e., 1.3): ")
+    body = resp.read()
+    parser = ParseGoDL()
+    parser.feed(body)
+    return parser.latest
 
 def all_for_gopath(base):
     return [substitute(loc) for (loc, dirs, files) in os.walk(base) if 'src' in dirs]
