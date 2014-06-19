@@ -11,6 +11,7 @@ and Mac OSX
 
 
 import argparse
+from HTMLParser import HTMLParser
 import httplib
 import os
 import platform
@@ -183,6 +184,28 @@ class MacOSX(Unix):
 
         super(MacOSX, self).__init__(*args)
 
+class ParseGoDL(HTMLParser):
+    """
+    Kinda janky, but I like it better than running a regex over the html
+    """
+    in_page, in_container, latest = (False,) * 3
+    def handle_starttag(self, data, attrs_l):
+        if self.latest:
+            return
+        attrs = dict(attrs_l)
+        id = attrs.get("id", "")
+        cls = attrs.get("class", "")
+        if id == "page":
+            self.in_page = True
+            return
+        if self.in_page and cls == "container":
+            self.in_container = True
+            return
+        if not (self.in_page and self.in_container):
+            return
+        if not id.startswith("go"):
+            return
+        self.latest = id[2:]
 
 # Helper functions
 def default_version():
