@@ -1,7 +1,6 @@
 #!/usr/bin/python
 from __future__ import print_function
 
-
 USAGE = u"""
 This is intended to be a cross-platform way to quickly set up
 a go environment, including downloading and extracting the necessary
@@ -11,13 +10,14 @@ and Mac OSX
 
 
 import argparse
-from HTMLParser import HTMLParser
 import httplib
+import math
 import os
 import platform
 import sys
 import tarfile
 
+from HTMLParser import HTMLParser
 
 DOWNLOAD_HOSTNAME = "storage.googleapis.com"
 DOWNLOAD_PATH = "/golang/{filename}"
@@ -48,12 +48,45 @@ class Plat(object):
         if not self.quiet() or (self.quiet() and override):
             print(message, file=file)
 
+    def print_progress(self, total_read, buf_size, total_size):
+        fraction = float(total_read) / total_size
+        pct = round(fraction * 100, 2)
+        read_kb = int(total_read) / 1024
+        total_kb = int(total_size) / 1024
+        num_blocks = int(math.floor(pct)) / 2
+        bar = (("=" * (num_blocks - 1)) + ">")
+        sys.stdout.write("\r[{3:<50}] {0:>6}% ({1} / {2} kb)".format(
+                                pct, 
+                                int(read_kb), 
+                                int(total_kb),
+                                bar))
+        if total_read >= total_size:
+            print("\n")
+        
+    def do_download(self, resp, report_hook=None, bufsize=8192):
+        if report_hook is None:
+            report_hook = self.print_progress
+        total_size = int(resp.getheader("Content-Length").strip())
+        total_read = 0
+        whole = []
+        
+        while True:
+            part = resp.read(bufsize)
+            total_read = total_read + len(part)
+            
+            if not part:
+                break
+                
+            whole.append(part)
+            report_hook(total_read, bufsize, total_size)
+        return "".join(whole)
+        
     def download(self):
         version = self.version
         architecture = self.architecture
         extension = self.extension
         platform = self.platform
-        
+
         filename = DOWNLOAD_FILENAME.format(version=version,
                                             platform=platform,
                                             architecture=architecture,
@@ -65,13 +98,13 @@ class Plat(object):
             try:
                 connection = httplib.HTTPConnection(DOWNLOAD_HOSTNAME)
                 connection.request("GET", path)
-                response = connection.getresponse()
+                response = self.do_download(connection.getresponse(buffering=True))
             except httplib.HTTPException as ex:
                 self.message(ex.message, file=sys.stderr)
                 sys.exit(1)
 
             with open(fullpath, 'wb+') as f:
-                f.write(response.read())
+                f.write(response)
         else:
             self.message("Using existing tarball", file=sys.stderr)
         return fullpath
