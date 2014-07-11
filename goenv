@@ -169,12 +169,13 @@ fish:
                 "GOROOT": goroot,
                 "GOPATH": gopath,
                 "PS1": ps1,
+                "GOENV": "1",
         }
         newenv = os.environ.copy()
         newenv.update(**additionalenv)
         # TODO instead of defaulting to Bash, detect user's shell and use that
         # instead
-        os.execlpe('/bin/bash', '-i', '--noprofile', '--norc', newenv)
+        os.execlpe(os.environ.get("SHELL", '/bin/bash'), "", newenv)
 
     def extract(self, filename):
         version = self.version
