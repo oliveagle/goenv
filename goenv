@@ -44,9 +44,8 @@ class Plat(object):
     def quiet(self):
         return self.opts.get("quiet", False)
 
-    def message(self, message, file=sys.stdout, override=False):
-        if not self.quiet() or (self.quiet() and override):
-            print(message, file=file)
+    def message(self, msg, file=sys.stdout, override=False):
+        return message(msg, file, self.quiet(), override)
 
     def print_progress(self, total_read, buf_size, total_size):
         fraction = float(total_read) / total_size
@@ -242,6 +241,10 @@ class ParseGoDL(HTMLParser):
         self.latest = id[2:]
 
 # Helper functions
+def message(message, file, quiet=False, override=False):
+    if not quiet or (quiet and override):
+        print(message, file=file)
+
 def default_version():
     conn = httplib.HTTPConnection("golang.org"); conn.connect()
     conn.request("GET", "/dl/")
@@ -264,10 +267,11 @@ def find_for_gopath(base, exclude=None):
     return [ d for d in alldirs if d not in exclude]
 
 
-def ensure_paths(*paths):
+def ensure_paths(*paths, **kwds):
+    quiet = kwds.pop("quiet", False)
     for path in paths:
         if not os.path.exists(path):
-            self.message("creating {0}".format(path), file=sys.stderr)
+            message("creating {0}".format(path), file=sys.stderr, quiet=quiet)
             os.makedirs(path)
 
 
@@ -302,7 +306,7 @@ def main(argv):
     if not gopath:
         gopath = [ os.getcwd() ]
 
-    ensure_paths(GOENV_CACHE_HOME, GOENV_CONFIG_HOME, GOLANG_DISTRIBUTIONS_DIR)
+    ensure_paths(GOENV_CACHE_HOME, GOENV_CONFIG_HOME, GOLANG_DISTRIBUTIONS_DIR, quiet=args.quiet)
 
     if sys.platform.startswith("linux"):
         impl = Linux
