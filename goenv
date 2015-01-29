@@ -16,6 +16,7 @@ import os
 import platform
 import sys
 import tarfile
+import shutil
 
 from HTMLParser import HTMLParser
 
@@ -36,7 +37,7 @@ GOLANG_DISTRIBUTIONS_DIR = os.path.join(GOENV_CONFIG_HOME, "dists")
 class Plat(object):
     def __init__(self, version=None, *gopath, **opts):
         if version is None:
-            version = self.latest_version()
+            version = get_default_version()
         self.version = version
         self.gopath = gopath
         self.opts = opts
@@ -79,7 +80,7 @@ class Plat(object):
             whole.append(part)
             report_hook(total_read, bufsize, total_size)
         return "".join(whole)
-        
+    
     def download(self):
         version = self.version
         architecture = self.architecture
@@ -107,7 +108,6 @@ class Plat(object):
         else:
             self.message("Using existing tarball", file=sys.stderr)
         return fullpath
-
 
 class Unix(Plat):
     def _is_64bit(self):
@@ -174,6 +174,8 @@ fish:
         newenv.update(**additionalenv)
         # TODO instead of defaulting to Bash, detect user's shell and use that
         # instead
+        # FIXME: with oh-my-zsh. PS1 don't work. note that there is a 
+        #   `virtualenv-prompt` which makes virtualenv PS1 works pretty well. 
         os.execlpe(os.environ.get("SHELL", '/bin/bash'), "", newenv)
 
     def extract(self, filename):
@@ -282,18 +284,73 @@ def substitute(path):
         return os.path.dirname(os.environ['PWD'])
     return os.path.realpath(path)
 
+def get_default_version():
+    default_flag_path = os.path.join(GOLANG_DISTRIBUTIONS_DIR, "default")
+    if os.path.exists(default_flag_path):
+        input = open(default_flag_path, "r")
+        return input.read()
+    else:
+        return ""
+
+def list_dists():
+    print("Installed versions:")
+    default_version = get_default_version()
+    for v in get_installed():
+        if v == default_version:
+            print("{} (default)".format(v))
+        else:
+            print(v)
+    os._exit(0)
+
+def get_installed():
+    tmp = os.listdir(GOLANG_DISTRIBUTIONS_DIR)
+    tset = set(tmp)
+    for folder in tmp:
+        if not os.path.isdir(os.path.join(GOLANG_DISTRIBUTIONS_DIR, folder)):
+            tset.remove(folder)
+    return tset
+
+def remove_dist(v):
+    if v in get_installed():
+        shutil.rmtree(os.path.join(GOLANG_DISTRIBUTIONS_DIR, v))
+    else:
+        print("Error: {} version is not installed".format(v))
+    os._exit(0)
+
+def set_default_version(v):
+    if v in get_installed():
+        out = open(os.path.join(GOLANG_DISTRIBUTIONS_DIR, "default"), "w")
+        out.write(v)
+        out.close()
+    else:
+        print("Error: {} version is not installed".format(v))
+    os._exit(0)
+
+def clear_default_version():
+    default_flag_path = os.path.join(GOLANG_DISTRIBUTIONS_DIR, "default")
+    if os.path.exists(default_flag_path):
+        os.remove(default_flag_path)
+    os._exit(0)
 
 def main(argv):
     parser = argparse.ArgumentParser(description=USAGE)
     parser.add_argument("--basedir", default='.', help="the directory to start looking for locations to add to the GOPATH")
-    parser.add_argument("--go-version", dest='version', action='store',
-            default=default_version(), help="specify a version of Go _other_ than the latest")
+    parser.add_argument("--go-version", dest='version', action='store', default="",
+            help="specify a version of Go _other_ than the latest")
     parser.add_argument("--exclude", default=tuple(), dest='exclude',
             action='store', nargs='*', help="exclude a directory from the $GOPATH")
     parser.add_argument("--install-only", default=False, dest="install_only", action='store_true',
             help="only download and install the specified version of Go, don't drop into a shell")
     parser.add_argument("-q", default=False, dest="quiet", action="store_true",
                         help="only output messages that could be helpful in automated scripts")
+    parser.add_argument("--set-default", dest='set_default', action='store',
+            help="set a default version of Go.")
+    parser.add_argument("--clear-default", dest='clear_default', action='store_true',
+            help="clear default version setting")
+    parser.add_argument("--list", dest='list_dists', action='store_true',
+            help="list all dists installed by this command")
+    parser.add_argument("--remove", dest='remove_dist', action='store',
+            help="remove installed golang dist version")
 
     args = parser.parse_args()
 
@@ -307,6 +364,25 @@ def main(argv):
         gopath = [ os.getcwd() ]
 
     ensure_paths(GOENV_CACHE_HOME, GOENV_CONFIG_HOME, GOLANG_DISTRIBUTIONS_DIR, quiet=args.quiet)
+
+    if args.set_default:
+        set_default_version(args.set_default)
+    if args.clear_default:
+        clear_default_version()
+    if args.list_dists:
+        list_dists()
+    if args.remove_dist:
+        remove_dist(args.remove_dist)
+
+    if args.version == "":
+        args.version = get_default_version()
+        installed = get_installed()
+        if args.version == "" and len(installed) > 0:
+            print("No default version been set. ")
+            list_dists()
+        elif len(installed) == 0:
+            # only if no installed and no default will download
+            args.version = default_version()
 
     if sys.platform.startswith("linux"):
         impl = Linux
