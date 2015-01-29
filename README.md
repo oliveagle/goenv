@@ -48,6 +48,34 @@ it somewhere in your path.
     Extracting /home/user/.cache/goenv/go1.1.linux-amd64.tar.gz to /home/user/.config/goenv/dists/1.1
     (golang-1.1) $
 
+## PS1 Prompt
+
+In `.bashrc`, modify prompt like so:
+
+
+```bash
+# bash
+function _goenv {
+    [ -n "${GOENV}" ] && echo "(golang-${GOENV}) " && return
+}
+
+PS1='$(_goenv)\u@\h \w $(__git_ps1 "${1:-(%s)} ")$(prompt_char) '
+```
+
+Or if your are using `oh-my-zsh`, modify theme file to get the same result.
+
+
+```bash
+# in your-own-theme.zsh-theme
+
+_goenv() {
+    [ -n "${GOENV}" ] && echo "(golang-${GOENV}) " && return
+}
+
+PROMPT='$(_goenv)$fg[green]%n %{$fg_bold[green]%}${PWD/#$HOME/~}%{$reset_color%}$(git_prompt_info) [%{$fg_bold[red]%}%*%{$reset_color%}]
+$ '
+```
+
 ## Contact
 
 email: pwoolcoc@gmail.com
